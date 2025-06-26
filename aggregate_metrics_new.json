@@ -1,0 +1,207 @@
+{
+  "aggregate_metrics": {
+    "generated_what_conciseness_score": {
+      "mean": 1.1929824561403508,
+      "median": 1.0,
+      "std_dev": 0.3981473386299918,
+      "min": 1.0,
+      "max": 2.0,
+      "count": 57
+    },
+    "generated_why_conciseness_score": {
+      "mean": 1.6491228070175439,
+      "median": 2.0,
+      "std_dev": 0.48148683672021303,
+      "min": 1.0,
+      "max": 2.0,
+      "count": 57
+    },
+    "what_rouge1_f1": {
+      "mean": 0.15138239716975865,
+      "median": 0.1512605042016807,
+      "std_dev": 0.06763101493797202,
+      "min": 0.032,
+      "max": 0.29411764705882354,
+      "count": 53
+    },
+    "what_rouge1_precision": {
+      "mean": 0.10549493399087304,
+      "median": 0.09615384615384616,
+      "std_dev": 0.057971689643004955,
+      "min": 0.02127659574468085,
+      "max": 0.25862068965517243,
+      "count": 53
+    },
+    "what_rouge1_recall": {
+      "mean": 0.35669106360283587,
+      "median": 0.3409090909090909,
+      "std_dev": 0.14369200608313973,
+      "min": 0.06451612903225806,
+      "max": 0.8333333333333334,
+      "count": 53
+    },
+    "what_rouge2_f1": {
+      "mean": 0.01461324187449253,
+      "median": 0.01075268817204301,
+      "std_dev": 0.01697493346514262,
+      "min": 0.0,
+      "max": 0.06666666666666667,
+      "count": 53
+    },
+    "what_rouge2_precision": {
+      "mean": 0.010082042959890371,
+      "median": 0.007633587786259542,
+      "std_dev": 0.012230076403612226,
+      "min": 0.0,
+      "max": 0.04878048780487805,
+      "count": 53
+    },
+    "what_rouge2_recall": {
+      "mean": 0.03646151597729389,
+      "median": 0.018518518518518517,
+      "std_dev": 0.04526985610087978,
+      "min": 0.0,
+      "max": 0.2,
+      "count": 53
+    },
+    "what_rougeL_f1": {
+      "mean": 0.10030509398961364,
+      "median": 0.09655172413793103,
+      "std_dev": 0.04114323757187603,
+      "min": 0.032,
+      "max": 0.22580645161290322,
+      "count": 53
+    },
+    "what_rougeL_precision": {
+      "mean": 0.069242931017359,
+      "median": 0.06299212598425197,
+      "std_dev": 0.0344997675513303,
+      "min": 0.02097902097902098,
+      "max": 0.16666666666666666,
+      "count": 53
+    },
+    "what_rougeL_recall": {
+      "mean": 0.249355518487751,
+      "median": 0.2222222222222222,
+      "std_dev": 0.13167343366730194,
+      "min": 0.06451612903225806,
+      "max": 0.8333333333333334,
+      "count": 53
+    },
+    "why_rouge1_f1": {
+      "mean": 0.16459014442271355,
+      "median": 0.16470588235294115,
+      "std_dev": 0.06450476028076034,
+      "min": 0.03636363636363637,
+      "max": 0.29906542056074764,
+      "count": 45
+    },
+    "why_rouge1_precision": {
+      "mean": 0.13117745095101685,
+      "median": 0.11764705882352941,
+      "std_dev": 0.07092912882497004,
+      "min": 0.02027027027027027,
+      "max": 0.29411764705882354,
+      "count": 45
+    },
+    "why_rouge1_recall": {
+      "mean": 0.27247083943785916,
+      "median": 0.25,
+      "std_dev": 0.08812593747903248,
+      "min": 0.14285714285714285,
+      "max": 0.5,
+      "count": 45
+    },
+    "why_rouge2_f1": {
+      "mean": 0.01871739386670346,
+      "median": 0.014598540145985403,
+      "std_dev": 0.02363291939943683,
+      "min": 0.0,
+      "max": 0.08108108108108107,
+      "count": 45
+    },
+    "why_rouge2_precision": {
+      "mean": 0.014970788878120159,
+      "median": 0.01,
+      "std_dev": 0.01971410615573465,
+      "min": 0.0,
+      "max": 0.06896551724137931,
+      "count": 45
+    },
+    "why_rouge2_recall": {
+      "mean": 0.031296325693676096,
+      "median": 0.019230769230769232,
+      "std_dev": 0.04275893979058243,
+      "min": 0.0,
+      "max": 0.2,
+      "count": 45
+    },
+    "why_rougeL_f1": {
+      "mean": 0.11694663573760515,
+      "median": 0.11570247933884298,
+      "std_dev": 0.04469466265752077,
+      "min": 0.03636363636363637,
+      "max": 0.22429906542056072,
+      "count": 45
+    },
+    "why_rougeL_precision": {
+      "mean": 0.0921230467937181,
+      "median": 0.09090909090909091,
+      "std_dev": 0.04703356175538565,
+      "min": 0.02027027027027027,
+      "max": 0.2033898305084746,
+      "count": 45
+    },
+    "why_rougeL_recall": {
+      "mean": 0.19931323279482555,
+      "median": 0.1875,
+      "std_dev": 0.07809630209866594,
+      "min": 0.061224489795918366,
+      "max": 0.4375,
+      "count": 45
+    },
+    "what_semantic_similarity": {
+      "mean": 0.4464140663906508,
+      "median": 0.4440485661341571,
+      "std_dev": 0.11573120262491497,
+      "min": 0.23424706451841124,
+      "max": 0.6891924261122835,
+      "count": 53
+    },
+    "why_semantic_similarity": {
+      "mean": 0.39877762245236736,
+      "median": 0.3824148126797713,
+      "std_dev": 0.12664583001065902,
+      "min": 0.1856157763160299,
+      "max": 0.7526525933774795,
+      "count": 45
+    },
+    "what_summary_overlap_score": {
+      "mean": 1.320754716981132,
+      "median": 1.0,
+      "std_dev": 0.4712334431149964,
+      "min": 1.0,
+      "max": 2.0,
+      "count": 53
+    },
+    "why_summary_overlap_score": {
+      "mean": 1.288888888888889,
+      "median": 1.0,
+      "std_dev": 0.45836776730155243,
+      "min": 1.0,
+      "max": 2.0,
+      "count": 45
+    },
+    "summary_stats": {
+      "total_items_processed": 57,
+      "total_items_in_dataset": 57,
+      "items_with_what_metrics": 53,
+      "items_with_why_metrics": 45
+    }
+  },
+  "metadata": {
+    "generated_at": "2025-06-26T07:25:09.080298",
+    "source_file": "data/experiments/update-prompt-why-section/20250626-064455/inference_and_evaluation_metrics.json",
+    "description": "Aggregate statistics computed from evaluation metrics"
+  }
+}
