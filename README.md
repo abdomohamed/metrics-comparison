@@ -11,6 +11,7 @@ A beautiful console application for comparing two `aggregate_metrics.json` files
 - **🔍 Detailed Analysis**: Comprehensive comparison of all metrics
 - **📅 Metadata Comparison**: Shows file generation times and source information
 - **⚡ Fast Performance**: Efficient comparison algorithm
+- **💾 Export Capabilities**: Save reports as beautiful HTML files with full styling preservation
 
 ## Installation 🚀
 
@@ -41,6 +42,16 @@ python metrics_comparator.py -u old_metrics.json new_metrics.json
 python metrics_comparator.py -f tree old_metrics.json new_metrics.json
 ```
 
+### Export to HTML
+```bash
+python metrics_comparator.py --export report.html old_metrics.json new_metrics.json
+```
+
+### Using a Custom Configuration
+```bash
+python metrics_comparator.py --config custom_config.ini old_metrics.json new_metrics.json
+```
+
 ### Help
 ```bash
 python metrics_comparator.py --help
@@ -54,7 +65,76 @@ python metrics_comparator.py --help
 | `file2` | Path to the second (new) metrics file |
 | `-u, --show-unchanged` | Show unchanged metrics in the output |
 | `-f, --format` | Output format: `table` (default) or `tree` |
+| `--export` | Export comparison to file (specify filename) |
+| `--export-format` | Export format (only HTML supported) |
+| `--config` | Path to a custom configuration file (default: `config.ini`) |
 | `-h, --help` | Show help message |
+
+## Configuration (`config.ini`)
+
+The tool can be configured via a `config.ini` file. By default, it looks for `config.ini` in the current directory. This allows for persistent customization of the tool's behavior.
+
+A `--config` argument can be used to provide a path to a specific configuration file.
+
+**Configuration Precedence:** Command-line arguments will always override settings in the `config.ini` file. For example, if `show_unchanged` is `false` in your config, using the `-u` flag will still show unchanged values.
+
+Here is an example of the `config.ini` file with default values:
+
+```ini
+# Metrics Comparison Tool Configuration
+
+[display]
+# Console width (auto-detected by default)
+console_width = auto
+
+# Color theme
+theme = auto  # auto, light, dark
+
+# Show progress bars
+show_progress = true
+
+# Default output format
+default_format = table  # table, tree
+
+[comparison]
+# Floating point precision for comparisons
+float_precision = 1e-10
+
+# Minimum percentage change to highlight
+min_percentage_change = 0.01
+
+# Fields to ignore in comparison (comma-separated)
+ignore_fields = 
+
+# Metrics to exclude from comparison
+exclude_metrics = 
+
+[output]
+# Show unchanged values by default
+show_unchanged = false
+
+# Maximum number of changes to display (0 = unlimited)
+max_changes = 0
+
+# Sort order for changes
+sort_by = metric_name  # metric_name, field_name, change_type, percentage
+
+[symbols]
+# Custom symbols for change types
+increased = 📈
+decreased = 📉
+unchanged = ➡️
+new = ✨
+removed = ❌
+
+[colors]
+# Color scheme (when theme=custom)
+increased_color = green
+decreased_color = red
+unchanged_color = blue
+new_color = yellow
+removed_color = red
+```
 
 ## Output Explanation 📋
 
@@ -84,6 +164,21 @@ python metrics_comparator.py --help
 - Summary counts for each metric group
 - Compact representation of changes
 - Excludes unchanged values for clarity
+
+## HTML Export 💾
+
+The tool supports exporting comparison results to HTML format while maintaining rich styling:
+
+### 🌐 HTML Export
+**Best for**: Web viewing, sharing, presentations, and maintaining full visual fidelity
+
+- **Full Rich Styling**: Preserves all colors, emojis, and formatting
+- **Responsive Design**: Works on desktop and mobile
+- **Dark Theme**: Professional look with syntax highlighting
+- **File Info**: Includes metadata and generation timestamps
+- **Self-Contained**: Single HTML file with embedded styles
+
+**Usage**: `--export report.html`
 
 ## Sample Output 📸
 

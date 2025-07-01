@@ -13,6 +13,9 @@ from pathlib import Path
 from typing import Dict, Any, Tuple, Optional
 from dataclasses import dataclass
 from enum import Enum
+from datetime import datetime
+from collections import Counter
+import configparser
 
 try:
     from rich.console import Console
@@ -64,8 +67,57 @@ class MetricChange:
 
 
 class MetricsComparator:
-    def __init__(self):
+    def __init__(self, config: configparser.ConfigParser = None):
         self.console = Console()
+        self._load_config(config)
+
+    def _load_config(self, config: configparser.ConfigParser):
+        """Load configuration from a ConfigParser object."""
+        if config is None:
+            config = configparser.ConfigParser()
+
+        # Comparison settings
+        self.float_precision = config.getfloat(
+            "comparison", "float_precision", fallback=1e-10
+        )
+        self.min_percentage_change = config.getfloat(
+            "comparison", "min_percentage_change", fallback=0.01
+        )
+        self.ignore_fields = [
+            f.strip()
+            for f in config.get("comparison", "ignore_fields", fallback="").split(",")
+            if f.strip()
+        ]
+        self.exclude_metrics = [
+            m.strip()
+            for m in config.get("comparison", "exclude_metrics", fallback="").split(",")
+            if m.strip()
+        ]
+
+        # Output settings
+        self.show_unchanged = config.getboolean(
+            "output", "show_unchanged", fallback=False
+        )
+        self.max_changes = config.getint("output", "max_changes", fallback=0)
+        self.sort_by = config.get("output", "sort_by", fallback="metric_name")
+
+        # Symbols
+        self.symbols = {
+            ChangeType.INCREASED: config.get("symbols", "increased", fallback="📈"),
+            ChangeType.DECREASED: config.get("symbols", "decreased", fallback="📉"),
+            ChangeType.UNCHANGED: config.get("symbols", "unchanged", fallback="➡️"),
+            ChangeType.NEW: config.get("symbols", "new", fallback="✨"),
+            ChangeType.REMOVED: config.get("symbols", "removed", fallback="❌"),
+        }
+
+        # Colors
+        self.colors = {
+            ChangeType.INCREASED: config.get("colors", "increased_color", fallback="green"),
+            ChangeType.DECREASED: config.get("colors", "decreased_color", fallback="red"),
+            ChangeType.UNCHANGED: config.get("colors", "unchanged_color", fallback="blue"),
+            ChangeType.NEW: config.get("colors", "new_color", fallback="yellow"),
+            ChangeType.REMOVED: config.get("colors", "removed_color", fallback="red"),
+        }
 
     def load_json_file(self, file_path: str) -> Dict[str, Any]:
         """Load and parse a JSON file."""
@@ -90,6 +142,9 @@ class MetricsComparator:
         all_metrics = set(old_metrics.keys()) | set(new_metrics.keys())
         
         for metric_name in all_metrics:
+            if metric_name in self.exclude_metrics:
+                continue
+
             old_metric = old_metrics.get(metric_name, {})
             new_metric = new_metrics.get(metric_name, {})
             
@@ -120,6 +175,9 @@ class MetricsComparator:
                 all_fields = set(old_metric.keys()) | set(new_metric.keys())
                 
                 for field_name in all_fields:
+                    if field_name in self.ignore_fields:
+                        continue
+
                     old_value = old_metric.get(field_name)
                     new_value = new_metric.get(field_name)
                     
@@ -131,7 +189,7 @@ class MetricsComparator:
                         change_type = ChangeType.NEW
                     elif new_value is None:
                         change_type = ChangeType.REMOVED
-                    elif abs(new_value - old_value) < 1e-10:  # Account for floating point precision
+                    elif abs(new_value - old_value) < self.float_precision:  # Account for floating point precision
                         change_type = ChangeType.UNCHANGED
                     elif new_value > old_value:
                         change_type = ChangeType.INCREASED
@@ -150,14 +208,9 @@ class MetricsComparator:
 
     def get_change_symbol_and_color(self, change: MetricChange) -> Tuple[str, str]:
         """Get symbol and color for a change type."""
-        symbols_colors = {
-            ChangeType.INCREASED: ("📈", "green"),
-            ChangeType.DECREASED: ("📉", "red"),
-            ChangeType.UNCHANGED: ("➡️", "blue"),
-            ChangeType.NEW: ("✨", "yellow"),
-            ChangeType.REMOVED: ("❌", "red")
-        }
-        return symbols_colors.get(change.change_type, ("❓", "white"))
+        symbol = self.symbols.get(change.change_type, "❓")
+        color = self.colors.get(change.change_type, "white")
+        return symbol, color
 
     def format_value(self, value: Optional[float]) -> str:
         """Format a numeric value for display."""
@@ -167,17 +220,18 @@ class MetricsComparator:
             return str(int(value))
         return f"{value:.6f}".rstrip('0').rstrip('.')
 
-    def format_percentage_change(self, change: MetricChange) -> str:
-        """Format percentage change for display."""
+    def format_percentage_change(self, change: MetricChange, style: str = "bright_white") -> Text:
+        """Format percentage change for display with customizable styling."""
         if change.percentage_change is None:
-            return ""
+            return Text("")
         
         abs_change = abs(change.percentage_change)
-        if abs_change < 0.01:
-            return ""
+        if abs_change < self.min_percentage_change:
+            return Text("")
         
         sign = "+" if change.percentage_change > 0 else ""
-        return f" ({sign}{change.percentage_change:.2f}%)"
+        percentage_text = Text(f" ({sign}{change.percentage_change:.2f}%)", style=style)
+        return percentage_text
 
     def create_summary_panel(self, changes: list[MetricChange]) -> Panel:
         """Create a summary panel with change statistics."""
@@ -230,8 +284,25 @@ class MetricsComparator:
         if not show_unchanged:
             filtered_changes = [c for c in changes if c.change_type != ChangeType.UNCHANGED]
 
-        # Sort changes by metric name, then by field name
-        filtered_changes.sort(key=lambda x: (x.metric_name, x.field_name))
+        # Sort changes
+        if self.sort_by == "field_name":
+            filtered_changes.sort(key=lambda x: (x.field_name, x.metric_name))
+        elif self.sort_by == "change_type":
+            filtered_changes.sort(key=lambda x: (x.change_type.value, x.metric_name))
+        elif self.sort_by == "percentage":
+            filtered_changes.sort(
+                key=lambda x: (
+                    abs(x.percentage_change) if x.percentage_change is not None else 0,
+                    x.metric_name,
+                ),
+                reverse=True,
+            )
+        else:  # Default sort by metric_name
+            filtered_changes.sort(key=lambda x: (x.metric_name, x.field_name))
+
+        # Limit number of changes displayed
+        if self.max_changes > 0:
+            filtered_changes = filtered_changes[: self.max_changes]
 
         for change in filtered_changes:
             symbol, color = self.get_change_symbol_and_color(change)
@@ -294,15 +365,17 @@ class MetricsComparator:
                 symbol, color = self.get_change_symbol_and_color(change)
                 field_text = Text(f"{symbol} {change.field_name}: ")
                 field_text.append(f"{self.format_value(change.old_value)} → {self.format_value(change.new_value)}")
-                field_text.append(self.format_percentage_change(change), style="dim")
+                field_text.append(self.format_percentage_change(change, style="dim"))
                 field_text.stylize(color)
                 
                 metric_node.add(field_text)
         
         return tree
 
-    def compare_files(self, file1: str, file2: str, show_unchanged: bool = False, output_format: str = "table"):
-        """Main comparison function."""
+    def compare_files(self, file1: str, file2: str, show_unchanged: bool = False, 
+                      output_format: str = "table", export_file: str = None, 
+                      export_format: str = None):
+        """Main comparison function with export capabilities."""
         self.console.print("\n🚀 [bold cyan]Metrics Comparison Tool[/bold cyan]\n")
         
         # Show progress while loading
@@ -332,15 +405,146 @@ class MetricsComparator:
         self.console.print()
 
         # Display detailed comparison based on format
-        if output_format == "tree":
-            tree = self.create_metrics_tree(changes)
-            self.console.print(tree)
-        else:  # table format
+        if output_format == "table":
             table = self.create_detailed_table(changes, show_unchanged)
             self.console.print(table)
+        else:  # tree format
+            tree = self.create_metrics_tree(changes)
+            self.console.print(tree)
 
         # Show metadata comparison if available
         self._show_metadata_comparison(old_data, new_data)
+        
+        # Export if requested
+        if export_file and export_format:
+            self._export_comparison(changes, old_data, new_data, file1, file2, 
+                                   export_file, export_format, show_unchanged, output_format)
+
+    def _export_comparison(self, changes, old_data, new_data, file1, file2, 
+                          export_file, export_format, show_unchanged, output_format):
+        """Export comparison results to HTML format."""
+        self.console.print(f"\n💾 [yellow]Exporting to HTML format...[/yellow]")
+        
+        try:
+            self._export_to_html(changes, old_data, new_data, file1, file2, 
+                               export_file, show_unchanged, output_format)
+            self.console.print(f"✅ [green]Export completed: {export_file}[/green]")
+            
+        except Exception as e:
+            self.console.print(f"❌ [red]Export failed: {e}[/red]")
+
+    def _export_to_html(self, changes, old_data, new_data, file1, file2, 
+                       export_file, show_unchanged, output_format):
+        """Export to HTML format with full Rich styling."""
+        # Create a new console for capturing HTML
+        html_console = Console(record=True, width=120)
+        
+        # Render all the content into the HTML console
+        summary_panel = self.create_summary_panel(changes)
+        html_console.print(summary_panel)
+        html_console.print()
+        
+        if output_format == "tree":
+            tree = self.create_metrics_tree(changes)
+            html_console.print(tree)
+        else:
+            table = self.create_detailed_table(changes, show_unchanged)
+            html_console.print(table)
+        
+        # Add metadata
+        old_meta = old_data.get("metadata", {})
+        new_meta = new_data.get("metadata", {})
+        if old_meta or new_meta:
+            meta_text = Text()
+            meta_text.append("📅 Generation Times:\n", style="bold")
+            meta_text.append(f"  Old: {old_meta.get('generated_at', 'N/A')}\n", style="dim")
+            meta_text.append(f"  New: {new_meta.get('generated_at', 'N/A')}\n", style="bright_white")
+            
+            meta_panel = Panel(meta_text, title="ℹ️ Metadata", border_style="blue")
+            html_console.print()
+            html_console.print(meta_panel)
+        
+        # Export to HTML
+        html_content = html_console.export_html()
+        
+        # Wrap in a nice container
+        full_html = f"""
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Metrics Comparison Report</title>
+    <style>
+        body {{ 
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace; 
+            background: #1e1e1e; 
+            color: #d4d4d4; 
+            margin: 20px;
+            line-height: 1.4;
+        }}
+        .container {{ 
+            max-width: 1400px; 
+            margin: 0 auto; 
+            background: #252526; 
+            padding: 20px; 
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }}
+        h1 {{ 
+            color: #4FC3F7; 
+            text-align: center; 
+            margin-bottom: 30px;
+            font-size: 24px;
+        }}
+        .timestamp {{ 
+            text-align: center; 
+            color: #888; 
+            margin-bottom: 20px; 
+        }}
+        .file-info {{
+            background: #2d2d30;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            border-left: 4px solid #4FC3F7;
+        }}
+        .rich-terminal {{ 
+            background: #0d1117 !important; 
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 16px;
+            margin: 10px 0;
+        }}
+        /* Override any default styles from Rich */
+        pre {{
+            background: #0d1117 !important;
+            padding: 16px;
+            border-radius: 6px;
+            border: 1px solid #30363d;
+            overflow-x: auto;
+        }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 Metrics Comparison Report</h1>
+        <div class="timestamp">Generated on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</div>
+        <div class="file-info">
+            <strong>📁 Files Compared:</strong><br>
+            <strong>Baseline:</strong> {file1}<br>
+            <strong>Current:</strong> {file2}
+        </div>
+        {html_content}
+    </div>
+</body>
+</html>
+        """
+        
+        with open(export_file, 'w', encoding='utf-8') as f:
+            f.write(full_html)
+
+
 
     def _show_metadata_comparison(self, old_data: Dict[str, Any], new_data: Dict[str, Any]):
         """Show metadata comparison in a panel."""
@@ -375,6 +579,14 @@ class MetricsComparator:
         self.console.print(meta_panel)
 
 
+def load_configuration(config_path: str) -> configparser.ConfigParser:
+    """Load configuration from a .ini file."""
+    config = configparser.ConfigParser()
+    if Path(config_path).exists():
+        config.read(config_path)
+    return config
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Compare two aggregate_metrics.json files with fancy visualization",
@@ -384,6 +596,7 @@ Examples:
   %(prog)s old_metrics.json new_metrics.json
   %(prog)s -u old_metrics.json new_metrics.json    # Show unchanged values
   %(prog)s -f tree old_metrics.json new_metrics.json  # Tree format
+  %(prog)s --export report.html old_metrics.json new_metrics.json  # Export to HTML
         """
     )
     
@@ -400,8 +613,26 @@ Examples:
         default="table",
         help="Output format (default: table)"
     )
+    parser.add_argument(
+        "--export",
+        help="Export comparison to file (specify filename)"
+    )
+    parser.add_argument(
+        "--export-format",
+        choices=["html"],
+        default=None,
+        help="Export format (only HTML supported)"
+    )
+    parser.add_argument(
+        "--config",
+        default="config.ini",
+        help="Path to the configuration file (default: config.ini)"
+    )
 
     args = parser.parse_args()
+
+    # Load configuration
+    config = load_configuration(args.config)
 
     # Validate files exist
     for file_path in [args.file1, args.file2]:
@@ -409,12 +640,29 @@ Examples:
             print(f"❌ Error: File '{file_path}' does not exist.")
             sys.exit(1)
 
-    comparator = MetricsComparator()
+    # Validate export arguments
+    if args.export and not args.export_format:
+        # If export file is specified but no format, default to HTML
+        args.export_format = "html"
+
+    # Determine show_unchanged status (CLI overrides config)
+    show_unchanged = config.getboolean("output", "show_unchanged", fallback=False)
+    if args.show_unchanged:
+        show_unchanged = True
+
+    # Determine output format (CLI overrides config)
+    output_format = config.get("output", "default_format", fallback="table")
+    if args.format:
+        output_format = args.format
+
+    comparator = MetricsComparator(config)
     comparator.compare_files(
         args.file1,
         args.file2,
-        show_unchanged=args.show_unchanged,
-        output_format=args.format
+        show_unchanged=show_unchanged,
+        output_format=output_format,
+        export_file=args.export,
+        export_format=args.export_format
     )
 
 
